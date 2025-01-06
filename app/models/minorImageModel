@@ -1,0 +1,24 @@
+/** @format */
+
+import mongoose from "mongoose"; // Use ES module import
+
+const minorImageSchema = new mongoose.Schema({
+	selectedRoomName: {
+		type: String,
+		unique: true,
+		required: true,
+	},
+	minorImages: {
+		type: [String], // Array of strings (image data)
+		required: true,
+	},
+});
+
+// const MinorImage = mongoose.model("MinorImage", minorImageSchema);
+
+// module.exports = MinorImage;
+
+const MinorImage =
+	mongoose.models.MinorImage || mongoose.model("MinorImage", minorImageSchema);
+
+export default MinorImage;

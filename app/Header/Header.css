@@ -1,0 +1,16 @@
+.app-title {
+  font-size: 1.25rem; /* Slightly larger than Bootstrap's h4 */
+  font-weight: 700;  /* Bold */
+  /* color: #007bff;    Bootstrap primary color */
+  letter-spacing: 0.05em; /* Spacing between letters */
+  margin: 0;         /* Remove margin */
+  padding: 0;        /* Remove padding */
+  text-transform: uppercase; /* Make the text uppercase */
+}
+
+@media (max-width: 768px) {
+  .app-title {
+    font-size: 0.5 rem; /* Slightly smaller font on smaller screens */
+    text-align: center;  /* Center text on small screens */
+  }
+}
