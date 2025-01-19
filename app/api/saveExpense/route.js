@@ -9,6 +9,8 @@ import { NextResponse } from "next/server";
 // Handle POST requests to create a new expense
 export async function POST(req) {
     if (req.method === "POST") {
+
+
         try {
             // Parse the JSON data from the request body
             const {
@@ -21,13 +23,6 @@ export async function POST(req) {
                 receipt,
             } = await req.json();
 
-            console.log(title,
-                category,
-                amount,
-                date,
-                paymentMethod,
-                remarks,
-                receipt)
 
             // Validate input data
             if (!title || !category || !amount || !date || !paymentMethod || !remarks || !receipt) {
@@ -37,6 +32,13 @@ export async function POST(req) {
 
             // Connect to the MongoDB database
             await connectDB();
+
+            // Check for redundancy based on title, amount, and date
+            const existingExpense = await Expenses.findOne({ title, amount, date });
+
+            if (existingExpense) {
+                return NextResponse.json({ message: "An expense with this title, amount, and date already exists." });
+            }
 
             // Create a new expense with the provided data
             const newExpense = await Expenses.create({
@@ -49,8 +51,8 @@ export async function POST(req) {
                 receipt, // Ensure receipt is validated before saving
             });
 
-            if (!newExpense.success) {
-                return NextResponse.jason({
+            if (!newExpense) {
+                return NextResponse.json({
                     message: ["Failed to save expense"]
                 })
             }
@@ -75,7 +77,7 @@ export async function POST(req) {
             } else if (error.code === 11600) {
                 return NextResponse.json({ messages: ["Chunk error."] });
             } else {
-                return NextResponse.json({ messages: ["Unable to save images."] });
+                return NextResponse.json({ messages: ["Unable to save Expense."] });
             }
         }
     } else {

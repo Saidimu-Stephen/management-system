@@ -43,6 +43,25 @@ const ExpenseSchema = new mongoose.Schema(
     }
 );
 
+// Unique index to prevent redundancy based on title, amount, and date
+ExpenseSchema.index({ title: 1, amount: 1, date: 1 }, { unique: true });
+
+// Pre-save hook to prevent redundancy based on the combination of title, category, and date
+ExpenseSchema.pre("save", async function (next) {
+    const existingExpense = await mongoose.models.Expenses.findOne({
+        title: this.title,
+        amount: this.amount,
+        date: this.date,
+    });
+
+    if (existingExpense) {
+        const error = new Error("An expense with the same title, amount, and date already exists.");
+        next(error); // If redundancy is detected, an error is thrown
+    } else {
+        next(); // No redundancy, proceed to save
+    }
+});
+
 // Export the model or compile it if not already compiled
 const Expenses = mongoose.models.Expenses || mongoose.model("Expenses", ExpenseSchema);
 export default Expenses;

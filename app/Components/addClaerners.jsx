@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 
 const AddUser = () => {
-    const [submitMessage, setSubmitMessage] = useState(""); // Define submitMessage state
+    const [submitMessage, setSubmitMessage] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false); // Manage submission state
     const [error, setError] = useState("");  // Error state
 

@@ -8,7 +8,7 @@ const ExpenseForm = () => {
     const [messages, setMessages] = useState([]);
     const [message, setMessage] = useState('');
     const [error, setError] = useState("");
-    const [receipt, setReceipt] = useState(null)
+
     const [expense, setExpense] = useState({
         title: "",
         category: "",
@@ -19,6 +19,8 @@ const ExpenseForm = () => {
         receipt: null,
 
     });
+
+    const [newImage, setNewImage] = useState(null)
 
 
 
@@ -44,13 +46,13 @@ const ExpenseForm = () => {
             // Prepare the request body
             const requestBody = {
                 // Include other fields as needed based on your API
-                title: expenseData.title,
-                category: expenseData.category,
-                amount: expenseData.amount,
-                date: expenseData.date,
-                paymentMethod: expenseData.paymentMethod,
-                remarks: expenseData.remarks,
-                receipt: expenseData.receipt, // Ensure receipt is in the correct format (e.g., base64)
+                title: expense.title,
+                category: expense.category,
+                amount: expense.amount,
+                date: expense.date,
+                paymentMethod: expense.paymentMethod,
+                remarks: expense.remarks,
+                receipt: expense.receipt, // Ensure receipt is in the correct format (e.g., base64)
             };
 
             const res = await fetch("/api/saveExpense", { // Replace with your API endpoint
@@ -79,16 +81,41 @@ const ExpenseForm = () => {
         }
     };
 
+    // function to convert the image to string base 64 for easier storage 
+    const convertBlobToBase64 = (blob) => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = (error) => reject(error);
+            reader.readAsDataURL(blob);
+        });
+    };
+
+
     // handle image change in the receipt picker 
     const handleImageChange = async (e) => {
         const file = e.target.files[0];
+        if (!file) {
+            alert("No image selected. Please choose an image."); // Notify the user
+            return; // Exit the function
+        }
         if (file) {
-            if (file.size > 200 * 1024) {
+
+            // Create a clean Blob (stripping metadata)
+            const cleanBlob = new Blob([file], { type: file.type });
+            setNewImage(cleanBlob)
+
+
+
+            if (cleanBlob.size > 200 * 1024) {
                 try {
-                    const compressedImage = await compressImage(file);
+                    const compressedImage = await compressImage(cleanBlob);
                     const compressedImageData = await readFileAsDataURL(compressedImage);
                     // setReceipt(compressedImageData); // Ensure this is set after compression
-                    setExpense((prevExpense) => ({ ...prevExpense, receipt: compressedImageData }));
+
+                    const base64String = await convertBlobToBase64(compressedImageData);
+
+                    setExpense((prevExpense) => ({ ...prevExpense, receipt: base64String }));
                     // Update expense.receipt after compression is complete
 
                     setError("");
@@ -97,18 +124,22 @@ const ExpenseForm = () => {
                     setError("Error compressing main image");
                 }
             } else {
-                console.log("Original Image Data:", file);
-                setReceipt(file); // Directly set the image if it's small enough
+
+                const base64String = await convertBlobToBase64(cleanBlob);
+                // setReceipt(file); // Directly set the image if it's small enough
+                setExpense((prevExpense) => ({ ...prevExpense, receipt: base64String }));
                 setError("");
             }
         }
     };
 
+
+
     // function to compress images
-    const compressImage = (file) => {
+    const compressImage = (cleanBlob) => {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
-            reader.readAsDataURL(file);
+            reader.readAsDataURL(cleanBlob);
             reader.onload = (event) => {
                 const img = new Image();
                 img.src = event.target.result;
@@ -135,11 +166,8 @@ const ExpenseForm = () => {
                     ctx.drawImage(img, 0, 0, width, height);
                     canvas.toBlob(
                         (blob) => {
-                            const compressedFile = new File([blob], file.name, {
-                                type: "image/jpeg",
-                                lastModified: Date.now(),
-                            });
-                            resolve(compressedFile);
+                            const compressedFile = new Blob([blob], { type: "image/jpeg" }); // No need for 'file'
+                            resolve(compressedFile); // Resolve with compressed blob
                         },
                         "image/jpeg",
                         0.5
@@ -154,24 +182,31 @@ const ExpenseForm = () => {
             };
         });
     };
-    // function to pick multiple images from computer
-    const readFileAsDataURL = (file) => {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => {
-                resolve(reader.result);
-            };
-            reader.onerror = (error) => {
-                reject(error);
-            };
-            reader.readAsDataURL(file);
-        });
-    };
 
     return (
         <form onSubmit={handleSubmit} className="p-4 bg-green-100 rounded shadow">
             <h2 className="text-xl font-semibold mb-4">Add Expense</h2>
 
+            {/* Loading Spinner */}
+            {loading && (
+                <div className="fixed inset-0 flex justify-center items-center bg-gray-700 bg-opacity-50 z-50">
+                    <div className="w-16 h-16 border-4 border-t-4 border-blue-500 border-solid rounded-full animate-spin"></div>
+                </div>
+            )}
+            {/* messages Pop - up  */}
+            {messages && messages.length > 0 && (
+                <div className="fixed top-4 left-1/2 transform -translate-x-1/2 p-4
+                 bg-green-500 text-white rounded-lg shadow-md z-50">
+                    <p>{messages}</p>
+                </div>
+            )}
+
+            {/* Error Pop-up */}
+            {error && (
+                <div className="fixed top-4 left-1/2 transform -translate-x-1/2 p-4 bg-red-500 text-white rounded-lg shadow-md z-50">
+                    <p>{error}</p>
+                </div>
+            )}
             <div className="mb-4">
                 <label className="block font-medium mb-1">Expense Name/Title:</label>
                 <input
@@ -223,6 +258,7 @@ const ExpenseForm = () => {
                     className="w-full border rounded px-3 py-2"
                     placeholderText="Select date"
                     dateFormat="yyyy/MM/dd"
+                    maxDate={new Date()}
                 />
             </div>
             {/* payment method  */}
@@ -262,14 +298,16 @@ const ExpenseForm = () => {
                 <label
                     htmlFor="receiptPicker"
                     className="cursor-pointer w-full flex justify-center">
-                    <div className="w-72 h-40 bg-gray-200 border-2 border-dashed rounded-lg hover:border-blue-500 transition-colors duration-300 flex items-center justify-center">
-                        {receipt ? (
+                    <div className="w-72 h-40 bg-gray-200 border-2 border-dashed rounded-lg
+                     hover:border-blue-500 transition-colors duration-300 flex 
+                     items-center justify-center">
+                        {newImage ? (
                             <img
                                 src={
-                                    typeof receipt === "string" &&
-                                        receipt.startsWith("data:")
-                                        ? receipt
-                                        : URL.createObjectURL(receipt)
+                                    typeof newImage === "string" &&
+                                        newImage.startsWith("data:")
+                                        ? newImage
+                                        : URL.createObjectURL(newImage)
                                 }
                                 alt="Selected"
                                 className="w-full h-full object-cover rounded-lg"
